@@ -10,7 +10,7 @@ static void inserisci_progetto(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt;
     char nomeprogetto[45];
-    char options[2];
+    char options[2] = {'1','2'};
     char op1;
   
     // retrieve del parametro necessario (titolo)
@@ -33,7 +33,7 @@ static void inserisci_progetto(MYSQL *conn)
     {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri per l'inserimento del progetto\n", true);
     }
-    // Run procedure
+    // Esecuzione procedura
     if (mysql_stmt_execute(prepared_stmt) != 0) 
     {
         print_stmt_error (prepared_stmt, "Errore nell'inserimento del progetto.");
@@ -72,7 +72,7 @@ static void stampa_progetti(MYSQL *conn)
     char options[4] = {'1','2','3','4'};
     int results;
   
-    if(!setup_prepared_stmt(&prepared_stmt, "call insert_progetto( )", conn)) 
+    if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_progetti_canali( )", conn)) 
     {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare la lista dei progetti\n", false);
     }
@@ -124,7 +124,7 @@ static void inserisci_coordinazione_progetto(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt;
     MYSQL_BIND param[2];
-    char option[2];
+    char option[2] = {'1','2'};
     char op1;
     // Parametri necessari alla relazione di coordinazione
     char cf[45];
@@ -162,7 +162,7 @@ static void inserisci_coordinazione_progetto(MYSQL *conn)
     {
         finish_with_stmt_error(conn, prepared_stmt, "Non è stato possibile effettuare il bind dei parametri\n" , true);
     }
-    // Run procedure
+    // Esecuzione procedura
     if (mysql_stmt_execute(prepared_stmt) != 0) 
     {
         print_stmt_error(prepared_stmt, "Errore nell'assegnazione del progetto al manager.");
@@ -197,7 +197,7 @@ static void inserisci_chiusura_progetto(MYSQL *conn)
     char id_c[45];
     int id;
     char data_c[11];
-    char options[2];
+    char options[2] = {'1','2'};
     char op;
     MYSQL_TIME data;
     // retrieve informazioni
@@ -227,7 +227,7 @@ static void inserisci_chiusura_progetto(MYSQL *conn)
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
     finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri\n", true);
     }
-    // Run procedure
+    // Esecuzione procedura
     if (mysql_stmt_execute(prepared_stmt) != 0) {
         print_stmt_error (prepared_stmt, "Errore nella chiusura del progetto.");
     } else {
@@ -290,11 +290,11 @@ static void consultazione_canale{
     // chiamata procedura
     if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_conversazioni( ?, ? )", conn)) 
     {
-        finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare la lista dei progetti\n", false);
+        finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare le conversazioni\n", false);
     }
     
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-        finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri perl'inserimento di un lavoratore\n", true);
+        finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri\n", true);
     }
 
 
@@ -316,14 +316,13 @@ static void consultazione_canale{
 static void inserisci_lavoratore(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt;
-    MYSQL_BIND param[5];
+    MYSQL_BIND param[54;
     char option[2] = {'1', '2'};
     char op;
     // Parametri necessari all'inserimento
     char cf[45];
     char nome[45];
     char cognome[45];
-    char email[45];
     unsigned char char_ruolo;
 
     // Retrieve informazioni da input utente
@@ -333,8 +332,6 @@ static void inserisci_lavoratore(MYSQL *conn)
     getInput(45, nome, false);
     printf("Cognome lavoratore: ");
     getInput(45, cognome, false);
-    printf("Email lavoratore: ");
-    getInput(45, email, false);
     printf("Inserire un ruolo:\n1)Capoprogetto\n2)Dipendente\n");
     char_ruolo=multiChoice("Select:", option, 2);
     if (char_ruolo != '1' || char_ruolo != '2') 
@@ -343,7 +340,7 @@ static void inserisci_lavoratore(MYSQL *conn)
         abort();
     }
     // Preparazione stored procedure
-    if(!setup_prepared_stmt(&prepared_stmt, "call insert_lavoratore(?, ?, ?, ?, ?)", conn)) 
+    if(!setup_prepared_stmt(&prepared_stmt, "call insert_lavoratore(?, ?, ?, ?)", conn)) 
     {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile inizializzare l'inserimento di un Lavoratore\n", false);
     }
@@ -358,12 +355,9 @@ static void inserisci_lavoratore(MYSQL *conn)
     param[2].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[2].buffer = cognome;
     param[2].buffer_length = strlen(surname);
-    param[3].buffer_type = MYSQL_TYPE_VAR_STRING;
-    param[3].buffer = email;
-    param[3].buffer_length = strlen(email);
-    param[4].buffer_type = MYSQL_TYPE_TINY;
-    param[4].buffer = ruolo;
-    param[4].buffer_length= strlen(ruolo);
+    param[3].buffer_type = MYSQL_TYPE_TINY;
+    param[3].buffer = ruolo;
+    param[3].buffer_length= strlen(ruolo);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri perl'inserimento di un lavoratore\n", true);
@@ -402,12 +396,12 @@ static void inserisci_utente(MYSQL *conn)
     char r;
     char op1;
 
-    char email[45];
+    char cf[45];
     char password[45];
     char ruolo[45];
     // Get the required information
-    printf("\nEmail: ");
-    getInput(45, email, false);
+    printf("\nCodice fiscale: ");
+    getInput(45, cf, false);
     printf("Password: ");
     getInput(45, password, true);
     printf("Assegnare uno tra i ruoli disponibili:\n");
@@ -416,7 +410,7 @@ static void inserisci_utente(MYSQL *conn)
     printf("\t3) Dipendente\n");
 
     r = multiChoice("Select role", options, 3);
-    // Convert role into enum value
+    // Converte ruolo nel valore corrispondente
     switch(r) {
         case '1':
             strcpy(ruolo, "Amministratore");
@@ -438,7 +432,7 @@ static void inserisci_utente(MYSQL *conn)
     // Prepare parameters
     memset(param, 0, sizeof(param));
     param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
-    param[0].buffer = email;
+    param[0].buffer = cf;
     param[0].buffer_length = strlen(username);
     param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[1].buffer = password;
@@ -449,7 +443,7 @@ static void inserisci_utente(MYSQL *conn)
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
         finish_with_stmt_error(conn, prepared_stmt, "Non è stato possibile effettuare il bind dei parametri per l'inserimento dell'utente\n", true);
     }
-    // Run procedure
+    // Esecuzione procedura
     if (mysql_stmt_execute(prepared_stmt) != 0) 
     {
         print_stmt_error (prepared_stmt, "Errore nell'inserimento dell'utente.");
@@ -484,9 +478,9 @@ void run_as_amministratore(MYSQL *conn)
 {
     char options[5] = {'1','2', '3', '4', '5'};
     char op;
-    printf("Benvenuto amministratore del sistema!\n");
+    printf("Benvenuto amministratore.\n");
     if(!parse_config("users/amministratore.json", &conf)) {
-        fprintf(stderr, "Unable to load administrator configuration\n");
+        fprintf(stderr, "Non è stato possibile attivare la modalità d'uso prevista!\n");
         exit(EXIT_FAILURE);
     }
     if(mysql_change_user(conn, conf.db_username, conf.db_password, conf.database)) {
