@@ -140,6 +140,8 @@ void dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title, int *num_result
             // Properly size the parameter buffer
             switch(fields[i].type) {
                 case MYSQL_TYPE_DATE:
+                     attr_size = sizeof(MYSQL_TIME);
+                     break;
                 case MYSQL_TYPE_TIMESTAMP:
                 case MYSQL_TYPE_DATETIME:
                 case MYSQL_TYPE_TIME:
@@ -206,7 +208,11 @@ void dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title, int *num_result
                         break;
                     case MYSQL_TYPE_TIME:
                         date = (MYSQL_TIME *)rs_bind[i].buffer;
-                        printf(" %02d:%02d:%02d |", date->hour, date->minute, date->second);
+                        char *tempo = malloc(sizeof(date));
+                        sprintf(tempo, " %02d:%02d:%02d ", date->hour, date->minute, date->second);
+                        printf(" %-*s |",(int)fields[i].max_length, tempo);
+                        free(tempo);
+                       break;
                     case MYSQL_TYPE_STRING:
                         printf(" %-*s |", (int)fields[i].max_length, (char *)rs_bind[i].buffer);
                         break;
@@ -256,7 +262,7 @@ int time_compare(char *s)
     if (strlen(s)!=8) return 0;
     for(int i=0; i<7; i++)
     {
-        if(i!=2 && i!=5 (s[i]<48 || s[i]>57)) return 0;
+        if(i!=2 && i!=5 && (s[i]<48 || s[i]>57)) return 0;
     }
     if(s[2]!= ':' && s[5] != ':') return 0;
     return 1;

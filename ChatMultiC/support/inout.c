@@ -173,7 +173,7 @@ char multiChoice(char *domanda, char choices[], int num)
         printf("%s [%s]: ", domanda, possib);
         char c;
         getInput(1, &c, false);
-        // Controlla se � un carattere valido
+        // Controlla se un carattere valido
         for(i = 0; i < num; i++) {
             if(c == choices[i])
             return c;
