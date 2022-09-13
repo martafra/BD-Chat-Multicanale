@@ -1,0 +1,8 @@
+{
+	"host": "localhost",
+	"username": "Amministratore",
+	"password": "4mm1n1str4t0r3",
+	"port": 3306,
+	"database": "Azienda"
+}
+
