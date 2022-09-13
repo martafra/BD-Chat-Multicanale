@@ -63,61 +63,7 @@ static void inserisci_progetto(MYSQL *conn)
     }
 }
 
-// funzione in grado di stampare lista progetti + canali di comunicazione
-static void stampa_progetti(MYSQL *conn)
-{
-    MYSQL_STMT *prepared_stmt;
-    char op1;
-    char header[512];
-    char options[4] = {'1','2','3','4'};
-    int results;
-  
-    if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_progetti_canali( )", conn)) 
-    {
-        finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare la lista dei progetti\n", false);
-    }
 
-
-    if (mysql_stmt_execute(prepared_stmt) != 0) 
-    {
-        print_stmt_error (prepared_stmt, "Errore nella stampa della lista dei progetti.");
-        goto out;
-    } 
-
-    
-        dump_result_set(conn, prepared_stmt, header, &results);
-        
-        out:
-        mysql_stmt_close(prepared_stmt);
-
-
-        printf("*** Azioni disponibili: ***\n\n");
-        printf("1) Assegnare coordinazione progetto ad un capoprogetto\n");
-        printf("2) Chiusura di un progetto\n");
-        printf("3) Consultare un canale di comunicazione\n");
-        printf("4) Chiudere l'applicazione\n");
-        op1 = multiChoice("Select: ", options, 4);
-        switch(op1)
-        {
-            case '1':
-                inserisci_coordinazione_progetto(conn);
-                break;
-            case '2':
-                inserisci_chiusura_progetto(conn);
-                break;
-            case '3':
-                consultazione_canale(conn);
-                break;   
-            case '4':
-                printf("\nArrivederci!");
-                return;
-        
-            default:
-                fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
-                abort();
-        }
-    
-}
 
 //funzione da chiamare in caso in cui si voglia affidare un progetto ad un capoprogetto
 static void inserisci_coordinazione_progetto(MYSQL *conn)
@@ -173,8 +119,8 @@ static void inserisci_coordinazione_progetto(MYSQL *conn)
     {mysql_stmt_close(prepared_stmt);}
     
     printf("\nVuoi gestire la coordinazione di un altro progetto? \n1) Sì \n2) No\n");
-        op = multiChoice("Select: ", option, 2);
-        switch(op)
+        op1 = multiChoice("Select: ", option, 2);
+        switch(op1)
         {
             case '1':
                 inserisci_coordinazione_progetto(conn);
@@ -219,7 +165,7 @@ static void inserisci_chiusura_progetto(MYSQL *conn)
     // sistemazione parametri
     memset(param, 0, sizeof(param));
     param[0].buffer_type = MYSQL_TYPE_LONG;
-    param[0].buffer = id;
+    param[0].buffer = &id;
     param[0].buffer_length = sizeof(id);
     param[1].buffer_type = MYSQL_TYPE_DATE;
     param[1].buffer = &data;
@@ -251,8 +197,9 @@ static void inserisci_chiusura_progetto(MYSQL *conn)
         }
 }
 
-static void consultazione_canale{
+static void consultazione_canale(MYSQL *conn){
     MYSQL_STMT *prepared_stmt;
+    MYSQL_BIND param[2];
     char header[512];
     int results;
     //parametri necessari
@@ -280,11 +227,12 @@ static void consultazione_canale{
     }
     cod = atoi(cod_c);
     // sistemazione parametri
+    memset(param, 0, sizeof(param));
     param[0].buffer_type = MYSQL_TYPE_LONG;
-    param[0].buffer = cod;
+    param[0].buffer = &cod;
     param[0].buffer_length = sizeof(cod);
     param[1].buffer_type = MYSQL_TYPE_LONG;
-    param[1].buffer = id;
+    param[1].buffer = &id;
     param[1].buffer_length = sizeof(id);  
     // chiamata procedura
     if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_conversazioni( ?, ? )", conn)) 
@@ -312,10 +260,81 @@ static void consultazione_canale{
 }
 
 
+
+// funzione in grado di stampare lista progetti + canali di comunicazione
+static void stampa_progetti(MYSQL *conn)
+{
+    MYSQL_STMT *prepared_stmt;
+    char op1;
+    char header[512];
+    char options[4] = {'1','2','3','4'};
+    int status;
+    int results;
+  
+    if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_progetti_canali( )", conn)) 
+    {
+        finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare la lista dei progetti\n", false);
+    }
+
+
+    if (mysql_stmt_execute(prepared_stmt) != 0) 
+    {
+        print_stmt_error (prepared_stmt, "Errore nella stampa della lista dei progetti.");
+        goto out;
+    } 
+
+    
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
+        sprintf(header, "\nShifts:\n");
+        dump_result_set(conn, prepared_stmt, header, &results);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf("");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
+
+
+        printf("*** Azioni disponibili: ***\n\n");
+        printf("1) Assegnare coordinazione progetto ad un capoprogetto\n");
+        printf("2) Chiusura di un progetto\n");
+        printf("3) Consultare un canale di comunicazione\n");
+        printf("4) Chiudere l'applicazione\n");
+        op1 = multiChoice("Select: ", options, 4);
+        switch(op1)
+        {
+            case '1':
+                inserisci_coordinazione_progetto(conn);
+                break;
+            case '2':
+                inserisci_chiusura_progetto(conn);
+                break;
+            case '3':
+                consultazione_canale(conn);
+                break;   
+            case '4':
+                printf("\nArrivederci!");
+                return;
+        
+            default:
+                fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+                abort();
+        }
+    
+}
+
+
 static void inserisci_lavoratore(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt;
-    MYSQL_BIND param[54;
+    MYSQL_BIND param[4];
     char option[2] = {'1', '2'};
     char op;
     // Parametri necessari all'inserimento
@@ -350,13 +369,13 @@ static void inserisci_lavoratore(MYSQL *conn)
     param[0].buffer_length = strlen(cf);
     param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[1].buffer = nome;
-    param[1].buffer_length = strlen(name);
+    param[1].buffer_length = strlen(nome);
     param[2].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[2].buffer = cognome;
-    param[2].buffer_length = strlen(surname);
+    param[2].buffer_length = strlen(cognome);
     param[3].buffer_type = MYSQL_TYPE_TINY;
-    param[3].buffer = ruolo;
-    param[3].buffer_length= strlen(ruolo);
+    param[3].buffer = &char_ruolo;
+    param[3].buffer_length= sizeof(char_ruolo);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri perl'inserimento di un lavoratore\n", true);
@@ -432,7 +451,7 @@ static void inserisci_utente(MYSQL *conn)
     memset(param, 0, sizeof(param));
     param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[0].buffer = cf;
-    param[0].buffer_length = strlen(username);
+    param[0].buffer_length = strlen(cf);
     param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[1].buffer = password;
     param[1].buffer_length = strlen(password);
@@ -467,7 +486,7 @@ static void inserisci_utente(MYSQL *conn)
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();
-        
+        }
     
     
 }
@@ -516,4 +535,4 @@ void run_as_amministratore(MYSQL *conn)
         }
         getchar();
     }
-},
+}

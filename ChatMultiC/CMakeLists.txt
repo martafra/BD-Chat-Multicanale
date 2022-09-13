@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(treno C)
+project(messaggistica C)
 
 set(CMAKE_C_STANDARD 11)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -9,10 +9,8 @@ find_package(MySQL REQUIRED)
 add_executable( ${PROJECT_NAME}
     main.c
     amministratore.c
-    capotreno.c
-    manutentore.c
-    passegero.c
-    macchinista.c
+    capoprogetto.c
+    dipendente.c
 )
 
 add_subdirectory(support)

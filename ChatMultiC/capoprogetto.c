@@ -7,11 +7,11 @@
 static void inserisci_canale_di_comunicazione(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt;
-    char options[2] = {'1','2'}
+    char options[2] = {'1','2'};
     char op1;
     // parametri necessari all'inserimento del canale
     char nomecanale[45];
-    char id_c;
+    char id_c[45];
     int id;
     // retrieve dei parametri necessari
     printf("Inserire ID del progetto associato: ");
@@ -35,7 +35,7 @@ static void inserisci_canale_di_comunicazione(MYSQL *conn)
     // Preparazione parametri
     memset(param, 0, sizeof(param));
     param[0].buffer_type = MYSQL_TYPE_LONG;
-    param[0].buffer = id;
+    param[0].buffer = &id;
     param[0].buffer_length = sizeof(id);
     param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[1].buffer = nomecanale;
@@ -83,7 +83,7 @@ static void inserisci_canale_di_comunicazione(MYSQL *conn)
 static void inserisci_appartenenza_canale(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt0;
-    char options[2] = {'1','2'}
+    char options[2] = {'1','2'};
     char op1;
     int results0;
     char header0[512];
@@ -95,9 +95,9 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
     // sistemazione parametri
     MYSQL_BIND param0[1];
     memset(param0, 0, sizeof(param0));
-    param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
-    param[0].buffer = conf.cf;
-    param[0].buffer_length = strlen(conf.cf);
+    param0[0].buffer_type = MYSQL_TYPE_VAR_STRING;
+    param0[0].buffer = conf.cf;
+    param0[0].buffer_length = strlen(conf.cf);
     if (mysql_stmt_bind_param(prepared_stmt0, param0) != 0) 
     {
         finish_with_stmt_error(conn, prepared_stmt0, "Non è stato possibile effettuare il bind dei parametri\n" , true);
@@ -119,9 +119,9 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
     MYSQL_STMT *prepared_stmt;
     // parametri necessari 
     char cf[45];
-    char id_c;
+    char id_c[45];
     int id;
-    char cod_c;
+    char cod_c[45];
     int cod;
     // retrieve dei parametri necessari
     printf("Inserire codice del canale di interesse: ");
@@ -157,10 +157,10 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
     param[0].buffer = cf;
     param[0].buffer_length = strlen(cf);
     param[1].buffer_type = MYSQL_TYPE_LONG;
-    param[1].buffer = cod;
+    param[1].buffer = &cod;
     param[1].buffer_length = sizeof(cod);
-    param[2].buffer_type = MYSQL_TYPE_VAR_LONG;
-    param[2].buffer = id;
+    param[2].buffer_type = MYSQL_TYPE_LONG;
+    param[2].buffer = &id;
     param[2].buffer_length = sizeof(id);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) 
@@ -200,7 +200,7 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
 static void inserisci_assegnazione_progetto(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt0;
-    char options[2] = {'1','2'}
+    char options[2] = {'1','2'};
     char op1;
     int results0;
     char header0[512];
@@ -212,9 +212,9 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     // sistemazione parametri
     MYSQL_BIND param0[1];
     memset(param0, 0, sizeof(param0));
-    param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
-    param[0].buffer = conf.cf;
-    param[0].buffer_length = strlen(conf.cf);
+    param0[0].buffer_type = MYSQL_TYPE_VAR_STRING;
+    param0[0].buffer = conf.cf;
+    param0[0].buffer_length = strlen(conf.cf);
     if (mysql_stmt_bind_param(prepared_stmt0, param0) != 0) 
     {
         finish_with_stmt_error(conn, prepared_stmt0, "Non è stato possibile effettuare il bind dei parametri\n" , true);
@@ -234,6 +234,7 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     // seconda fase di lettura    
     int results1;
     char header1[512];
+    MYSQL_STMT *prepared_stmt1;
     if(!setup_prepared_stmt(&prepared_stmt1, "call retrieve_dipendenti()", conn)) 
     {
         finish_with_stmt_error(conn, prepared_stmt1, "Impossibile stampare la lista dei dipendenti\n", false);
@@ -258,14 +259,14 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     
         dump_result_set(conn, prepared_stmt1, header1, &results1);
         
-        out:1
+        out1:
         mysql_stmt_close(prepared_stmt1);
 
     //fase di inserimento
     MYSQL_STMT *prepared_stmt;
     // parametri necessari 
     char cf[45];
-    char id_c;
+    char id_c[45];
     int id;
 
     // retrieve dei parametri necessari
@@ -291,8 +292,8 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[0].buffer = cf;
     param[0].buffer_length = strlen(cf);
-    param[1].buffer_type = MYSQL_TYPE_VAR_LONG;
-    param[1].buffer = id;
+    param[1].buffer_type = MYSQL_TYPE_LONG;
+    param[1].buffer = &id;
     param[1].buffer_length = sizeof(id);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) 
@@ -330,12 +331,75 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
 }
 
 
+static void consultazione_canale(MYSQL *conn){
+    MYSQL_STMT *prepared_stmt;
+    MYSQL_BIND param[2];
+    char header[512];
+    int results;
+    //parametri necessari
+    char id_c[45];
+    char cod_c[45];
+    int id;
+    int cod;
+    // Retrieve informazioni
+    printf("Inserire ID del progetto: ");
+    while(true)
+    {
+        getInput(45, id_c, false);
+        if(int_compare(id_c)) 
+        break;
+        else printf("Formato errato, riprova: ");
+    }
+    id = atoi(id_c);
+    printf("Inserire codice del canale: ");
+    while(true)
+    {
+        getInput(45, cod_c, false);
+        if(int_compare(cod_c)) 
+        break;
+        else printf("Formato errato, riprova: ");
+    }
+    cod = atoi(cod_c);
+    // sistemazione parametri
+    memset(param, 0, sizeof(param));
+    param[0].buffer_type = MYSQL_TYPE_LONG;
+    param[0].buffer = &cod;
+    param[0].buffer_length = sizeof(cod);
+    param[1].buffer_type = MYSQL_TYPE_LONG;
+    param[1].buffer = &id;
+    param[1].buffer_length = sizeof(id);  
+    // chiamata procedura
+    if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_conversazioni( ?, ? )", conn)) 
+    {
+        finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare le conversazioni\n", false);
+    }
+    
+    if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
+        finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri\n", true);
+    }
 
 
-static void stampa_progetti_coordinazione(*MYSQL conn){
+    if (mysql_stmt_execute(prepared_stmt) != 0) 
+    {
+        print_stmt_error (prepared_stmt, "Errore nella stampa delle conversazioni.");
+        mysql_stmt_close(prepared_stmt);
+	return;
+    } 
+
+    	// stampa conversazioni
+        dump_result_set(conn, prepared_stmt, header, &results);
+        mysql_stmt_close(prepared_stmt);
+
+    
+}
+
+
+
+static void stampa_progetti_coordinazione(MYSQL *conn){
     MYSQL_STMT *prepared_stmt;
     MYSQL_BIND param[1];
     char op1;
+    int status;
     char header[512];
     char options[5] = {'1','2','3','4','5'};
     int results;
@@ -361,12 +425,21 @@ static void stampa_progetti_coordinazione(*MYSQL conn){
         goto out;
     } 
 
-    
+do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt, header, &results);
-        
-        out:
-        mysql_stmt_close(prepared_stmt);
-
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf(" ");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
 
         printf("*** Azioni disponibili: ***\n\n");
         printf("1) Creare un canale di comunicazione afferente ad un progetto\n");
@@ -404,7 +477,7 @@ static void stampa_progetti_coordinazione(*MYSQL conn){
 static void inserisci_risposta_privata(MYSQL *conn, int id)
 {
     MYSQL_STMT *prepared_stmt;
-    char options[2] = {'1','2'}
+    char options[2] = {'1','2'};
     char op1;
     int idprog = id;
     // parametri necessari all'inserimento del messaggio
@@ -455,11 +528,11 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
     param[3].buffer_type = MYSQL_TYPE_DATE;
     param[3].buffer = &parsed_data;
     param[3].buffer_length = sizeof(MYSQL_TIME);
-    param[4].buffer_type = MYSQL_TYPE_VAR_CHAR;
+    param[4].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[4].buffer = orario;
     param[4].buffer_length = strlen(orario);
     param[5].buffer_type = MYSQL_TYPE_LONG;
-    param[5].buffer = idprog;
+    param[5].buffer = &idprog;
     param[5].buffer_length = sizeof(idprog);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) 
@@ -483,7 +556,7 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
         switch(op1)
         {
             case '1':
-                stampa_progetti_appartenenza(conn);
+                inserisci_risposta_privata(conn, id);
                 break;
             case '2':
                 printf("\nArrivederci!");
@@ -500,7 +573,7 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
 static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
 {
     MYSQL_STMT *prepared_stmt;
-    char options[2] = {'1','2'}
+    char options[2] = {'1','2'};
     char op1;
     int idprog = id;
     int codcanale = cod;
@@ -534,7 +607,7 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
 
 
     MYSQL_BIND param[7];
-    if(!setup_prepared_stmt(&prepared_stmt, "call risposta_pubblica(?, ?, ?, ?, ?, ?, ? )", conn)) 
+    if(!setup_prepared_stmt(&prepared_stmt, "call risposta_pubblica(?, ?, ?, ?, ?, ?, ?)", conn)) 
     {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile inserire il messaggio\n", false);
     }
@@ -552,14 +625,14 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
     param[3].buffer_type = MYSQL_TYPE_DATE;
     param[3].buffer = &parsed_data;
     param[3].buffer_length = sizeof(MYSQL_TIME);
-    param[4].buffer_type = MYSQL_TYPE_VAR_CHAR;
+    param[4].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[4].buffer = orario;
     param[4].buffer_length = strlen(orario);
     param[5].buffer_type = MYSQL_TYPE_LONG;
-    param[5].buffer = codcanale;
+    param[5].buffer = &codcanale;
     param[5].buffer_length = sizeof(codcanale);
     param[6].buffer_type = MYSQL_TYPE_LONG;
-    param[6].buffer = idprog;
+    param[6].buffer = &idprog;
     param[6].buffer_length = sizeof(idprog);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) 
@@ -602,7 +675,7 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
 static void inserisci_messaggio(MYSQL *conn, int id, int cod)
 {
     MYSQL_STMT *prepared_stmt;
-    char options[2] = {'1','2'}
+    char options[2] = {'1','2'};
     char op1;
     int idprog = id;
     int codcanale = cod;
@@ -626,12 +699,12 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
     param[0].buffer_length = strlen(conf.cf);
     param[1].buffer_type = MYSQL_TYPE_VAR_STRING;
     param[1].buffer = testo;
-    param[1].buffer_length = strlen(teso);
+    param[1].buffer_length = strlen(testo);
     param[2].buffer_type = MYSQL_TYPE_LONG;
-    param[2].buffer = codcanale;
+    param[2].buffer = &codcanale;
     param[2].buffer_length = sizeof(codcanale);
     param[3].buffer_type = MYSQL_TYPE_LONG;
-    param[3].buffer = idprog;
+    param[3].buffer = &idprog;
     param[3].buffer_length = sizeof(idprog);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) 
@@ -669,12 +742,18 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
 }
 
 
-static void consultazione_canale_scrittura{
+
+
+
+
+
+static void consultazione_canale_scrittura(MYSQL *conn){
     MYSQL_STMT *prepared_stmt;
+    MYSQL_BIND param[2];
     char header[512];
-    char options[4] = {'1','2','3', '4'};
-    char op1;
     int results;
+    char options[4] = {'1','2','3','4'};
+    char op1;
     //parametri necessari
     char id_c[45];
     char cod_c[45];
@@ -700,11 +779,12 @@ static void consultazione_canale_scrittura{
     }
     cod = atoi(cod_c);
     // sistemazione parametri
+    memset(param, 0, sizeof(param));
     param[0].buffer_type = MYSQL_TYPE_LONG;
-    param[0].buffer = cod;
+    param[0].buffer = &cod;
     param[0].buffer_length = sizeof(cod);
     param[1].buffer_type = MYSQL_TYPE_LONG;
-    param[1].buffer = id;
+    param[1].buffer = &id;
     param[1].buffer_length = sizeof(id);  
     // chiamata procedura
     if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_conversazioni( ?, ? )", conn)) 
@@ -732,7 +812,7 @@ static void consultazione_canale_scrittura{
         printf("1) Scrivere un messaggio\n");
         printf("2) Rispondere pubblicamente ad un messaggio\n");
         printf("3) Rispondere privatamente ad un messaggio\n");
-        op1 = multiChoice("Select: ", options, 3);
+        op1 = multiChoice("Select:", options, 4);
         switch(op1)
         {
             case '1':
@@ -757,9 +837,13 @@ static void consultazione_canale_scrittura{
 
 
 
-static void stampa_progetti_appartenenza(*MYSQL conn){
+
+
+
+static void stampa_progetti_appartenenza(MYSQL *conn){
     MYSQL_STMT *prepared_stmt;
     MYSQL_BIND param[1];
+    int status;
     char op1;
     char header[512];
     char options[2] = {'1','2'};
@@ -787,10 +871,21 @@ static void stampa_progetti_appartenenza(*MYSQL conn){
     } 
 
     
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt, header, &results);
-        
-        out:
-        mysql_stmt_close(prepared_stmt);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf("Nessuna disponibilità\n");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
 
 
         printf("*** Azioni disponibili: ***\n\n");
@@ -812,6 +907,8 @@ static void stampa_progetti_appartenenza(*MYSQL conn){
         }
 
 }
+
+
 
 void run_as_capoprogetto(MYSQL *conn)
 {
@@ -840,7 +937,6 @@ void run_as_capoprogetto(MYSQL *conn)
             case '2':
             	stampa_progetti_appartenenza(conn);
             case '3':
-            	stampa_progetti_messaggistica(conn);
                 return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
