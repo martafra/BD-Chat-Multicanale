@@ -122,4 +122,3 @@ int main(void) {
     mysql_close (conn);
     return 0;
 }
-
