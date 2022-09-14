@@ -6,7 +6,7 @@
 #include "defines.h"
 
 #define BUFF_SIZE 4096
-
+MYSQL_RES *rs_metadata;
 // The final config struct will point into this
 
 static char config[BUFF_SIZE];

@@ -25,3 +25,5 @@ extern void run_as_capoprogetto(MYSQL *conn);
 extern void run_as_dipendente(MYSQL *conn);
 extern int parse_date(char *date, MYSQL_TIME *parsed);
 extern char *parse_time(char *time);
+
+extern MYSQL_RES *rs_metadata;

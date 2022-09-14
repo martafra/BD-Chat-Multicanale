@@ -96,7 +96,7 @@ static void dump_result_set_header(MYSQL_RES *res_set)
     print_dashes(res_set);
 }
 
-void dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title, int *num_result)
+MYSQL_RES *dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title, int *num_result)
 {
     int i;
     int status;
@@ -236,14 +236,14 @@ void dump_result_set(MYSQL *conn, MYSQL_STMT *stmt, char *title, int *num_result
             putchar('\n');
             print_dashes(rs_metadata);
         }
-        mysql_free_result(rs_metadata); /* free metadata */
+        
         /* free output buffers */
         for (i = 0; i < num_fields; i++) {
             free(rs_bind[i].buffer);
         }
         free(rs_bind);
     }
-
+	return rs_metadata;
 }
 
 int date_compare(char *s)
