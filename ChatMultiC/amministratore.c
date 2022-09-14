@@ -207,6 +207,7 @@ static void consultazione_canale(MYSQL *conn){
     char cod_c[45];
     int id;
     int cod;
+    int status;
     // Retrieve informazioni
     printf("Inserire ID del progetto: ");
     while(true)
@@ -253,8 +254,22 @@ static void consultazione_canale(MYSQL *conn){
     } 
 
     	// stampa conversazioni
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt, header, &results);
-        mysql_stmt_close(prepared_stmt);
+        mysql_free_result(rs_metadata);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf("Nessuna disponibilità\n");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
 	return;
     
 }
@@ -289,14 +304,14 @@ static void stampa_progetti(MYSQL *conn)
         if(conn->server_status & SERVER_PS_OUT_PARAMS) {
             goto next;
         }
-        sprintf(header, "\nShifts:\n");
         dump_result_set(conn, prepared_stmt, header, &results);
+        mysql_free_result(rs_metadata);
         next:
         status = mysql_stmt_next_result(prepared_stmt);
         if (status > 0){
             finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
         }
-        if(results == 0) printf("");
+        if(results == 0) printf("Nessuna disponibilità\n");
     } while (status == 0);
     out:
     mysql_stmt_close(prepared_stmt);
@@ -341,8 +356,8 @@ static void inserisci_lavoratore(MYSQL *conn)
     char cf[45];
     char nome[45];
     char cognome[45];
-    unsigned char char_ruolo;
-
+    signed char r;
+    char ruolo;
     // Retrieve informazioni da input utente
     printf("\nCodice fiscale lavoratore: ");
     getInput(45, cf, false);
@@ -351,12 +366,8 @@ static void inserisci_lavoratore(MYSQL *conn)
     printf("Cognome lavoratore: ");
     getInput(45, cognome, false);
     printf("Inserire un ruolo:\n1)Capoprogetto\n2)Dipendente\n");
-    char_ruolo=multiChoice("Select:", option, 2);
-    if (char_ruolo != '1' || char_ruolo != '2') 
-    {
-        printf("L'opzione inserita non è valida\n");
-        abort();
-    }
+    ruolo=multiChoice("Select:", option, 2);
+    r = atoi(&ruolo);
     // Preparazione stored procedure
     if(!setup_prepared_stmt(&prepared_stmt, "call insert_lavoratore(?, ?, ?, ?)", conn)) 
     {
@@ -374,8 +385,8 @@ static void inserisci_lavoratore(MYSQL *conn)
     param[2].buffer = cognome;
     param[2].buffer_length = strlen(cognome);
     param[3].buffer_type = MYSQL_TYPE_TINY;
-    param[3].buffer = &char_ruolo;
-    param[3].buffer_length= sizeof(char_ruolo);
+    param[3].buffer = &r;
+    param[3].buffer_length= sizeof(r);
 
     if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
         finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri perl'inserimento di un lavoratore\n", true);

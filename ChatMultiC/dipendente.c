@@ -5,6 +5,7 @@
 #include "defines.h"
 
 
+
 // attività di messaggistica legate ai progetti
 static void inserisci_risposta_privata(MYSQL *conn, int id)
 {
@@ -80,6 +81,7 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
     else 
     {
         printf("Risposta inserita correttamente...\n");
+        mysql_free_result(rs_metadata);
         mysql_stmt_close(prepared_stmt);
 
 
@@ -180,6 +182,7 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
     else 
     {
         printf("Risposta inserita correttamente...\n");
+        mysql_free_result(rs_metadata);
         mysql_stmt_close(prepared_stmt);
 
 
@@ -252,8 +255,9 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
     else 
     {
         printf("Messaggio inserito correttamente...\n");
+        mysql_free_result(rs_metadata);
         mysql_stmt_close(prepared_stmt);
-
+	
 
         printf("\nVuoi inserire un altro messaggio? \n1) Sì \n2) No\n");
         op1 = multiChoice("Select: ", options, 2);
@@ -281,6 +285,7 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
 
 static void consultazione_canale_scrittura(MYSQL *conn){
     MYSQL_STMT *prepared_stmt;
+    int status;
     MYSQL_BIND param[2];
     char header[512];
     int results;
@@ -335,10 +340,23 @@ static void consultazione_canale_scrittura(MYSQL *conn){
         mysql_stmt_close(prepared_stmt);
 	return;
     } 
-
-    	// stampa conversazioni
+	// stampa conversazioni
+    	do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt, header, &results);
-        mysql_stmt_close(prepared_stmt);
+        mysql_free_result(rs_metadata);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf("Nessuna disponibilità\n");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
 	
 	printf("*** Azioni disponibili: ***\n\n");
         printf("1) Scrivere un messaggio\n");
@@ -357,7 +375,6 @@ static void consultazione_canale_scrittura(MYSQL *conn){
                 inserisci_risposta_privata(conn, id);
                 break;
             case '4':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -366,7 +383,6 @@ static void consultazione_canale_scrittura(MYSQL *conn){
         }
     
 }
-
 
 
 
@@ -409,6 +425,7 @@ static void stampa_progetti_appartenenza(MYSQL *conn){
             goto next;
         }
         dump_result_set(conn, prepared_stmt, header, &results);
+        mysql_free_result(rs_metadata);
         next:
         status = mysql_stmt_next_result(prepared_stmt);
         if (status > 0){
@@ -430,7 +447,6 @@ static void stampa_progetti_appartenenza(MYSQL *conn){
                 consultazione_canale_scrittura(conn);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -439,70 +455,6 @@ static void stampa_progetti_appartenenza(MYSQL *conn){
         }
 
 }
-
-static void consultazione_canale(MYSQL *conn){
-    MYSQL_STMT *prepared_stmt;
-    MYSQL_BIND param[2];
-    char header[512];
-    int results;
-    //parametri necessari
-    char id_c[45];
-    char cod_c[45];
-    int id;
-    int cod;
-    // Retrieve informazioni
-    printf("Inserire ID del progetto: ");
-    while(true)
-    {
-        getInput(45, id_c, false);
-        if(int_compare(id_c)) 
-        break;
-        else printf("Formato errato, riprova: ");
-    }
-    id = atoi(id_c);
-    printf("Inserire codice del canale: ");
-    while(true)
-    {
-        getInput(45, cod_c, false);
-        if(int_compare(cod_c)) 
-        break;
-        else printf("Formato errato, riprova: ");
-    }
-    cod = atoi(cod_c);
-    // sistemazione parametri
-    memset(param, 0, sizeof(param));
-    param[0].buffer_type = MYSQL_TYPE_LONG;
-    param[0].buffer = &cod;
-    param[0].buffer_length = sizeof(cod);
-    param[1].buffer_type = MYSQL_TYPE_LONG;
-    param[1].buffer = &id;
-    param[1].buffer_length = sizeof(id);  
-    // chiamata procedura
-    if(!setup_prepared_stmt(&prepared_stmt, "call retrieve_conversazioni( ?, ? )", conn)) 
-    {
-        finish_with_stmt_error(conn, prepared_stmt, "Impossibile stampare le conversazioni\n", false);
-    }
-    
-    if (mysql_stmt_bind_param(prepared_stmt, param) != 0) {
-        finish_with_stmt_error(conn, prepared_stmt, "Impossibile effettuare il bind dei parametri\n", true);
-    }
-
-
-    if (mysql_stmt_execute(prepared_stmt) != 0) 
-    {
-        print_stmt_error (prepared_stmt, "Errore nella stampa delle conversazioni.");
-        mysql_stmt_close(prepared_stmt);
-	return;
-    } 
-
-    	// stampa conversazioni
-        dump_result_set(conn, prepared_stmt, header, &results);
-        mysql_stmt_close(prepared_stmt);
-	return;
-    
-}
-
-
 
 
 void run_as_dipendente(MYSQL *conn)

@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "defines.h"
 
+
+
 static void inserisci_canale_di_comunicazione(MYSQL *conn)
 {
     MYSQL_STMT *prepared_stmt;
@@ -68,7 +70,6 @@ static void inserisci_canale_di_comunicazione(MYSQL *conn)
                 inserisci_canale_di_comunicazione(conn);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -87,6 +88,7 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
     char op1;
     int results0;
     char header0[512];
+    int status;
     // fase di lettura
     if(!setup_prepared_stmt(&prepared_stmt0, "call retrieve_appartenenza_coordinazione(?)", conn)) 
     {
@@ -110,10 +112,22 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
     } 
 
     
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt0, header0, &results0);
-        
-        out:
-        mysql_stmt_close(prepared_stmt0);
+        mysql_free_result(rs_metadata);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt0);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt0, "Unexpected condition", true);
+        }
+        if(results0 == 0) printf("Nessuna disponibilità\n");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt0);
 
     //fase di inserimento
     MYSQL_STMT *prepared_stmt;
@@ -187,7 +201,6 @@ static void inserisci_appartenenza_canale(MYSQL *conn)
                 inserisci_appartenenza_canale(conn);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -204,6 +217,7 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     char op1;
     int results0;
     char header0[512];
+    int status0;
     // prima fase di lettura
     if(!setup_prepared_stmt(&prepared_stmt0, "call retrieve_appartenenza_coordinazione(?)", conn)) 
     {
@@ -227,13 +241,26 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     } 
 
     
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt0, header0, &results0);
-        
-        out:
-        mysql_stmt_close(prepared_stmt0);
+        mysql_free_result(rs_metadata);
+        next:
+        status0 = mysql_stmt_next_result(prepared_stmt0);
+        if (status0 > 0){
+            finish_with_stmt_error(conn, prepared_stmt0, "Unexpected condition", true);
+        }
+        if(results0 == 0) printf("Nessuna disponibilità\n");
+    } while (status0 == 0);
+    out:
+    mysql_stmt_close(prepared_stmt0);
     // seconda fase di lettura    
     int results1;
     char header1[512];
+    int status1;
     MYSQL_STMT *prepared_stmt1;
     if(!setup_prepared_stmt(&prepared_stmt1, "call retrieve_dipendenti()", conn)) 
     {
@@ -257,10 +284,22 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
     } 
 
     
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next1;
+        }
         dump_result_set(conn, prepared_stmt1, header1, &results1);
-        
-        out1:
-        mysql_stmt_close(prepared_stmt1);
+        mysql_free_result(rs_metadata);
+        next1:
+        status1 = mysql_stmt_next_result(prepared_stmt1);
+        if (status1 > 0){
+            finish_with_stmt_error(conn, prepared_stmt1, "Unexpected condition", true);
+        }
+        if(results1 == 0) printf("Nessuna disponibilità\n");
+    } while (status1 == 0);
+    out1:
+    mysql_stmt_close(prepared_stmt1);
 
     //fase di inserimento
     MYSQL_STMT *prepared_stmt;
@@ -320,7 +359,6 @@ static void inserisci_assegnazione_progetto(MYSQL *conn)
                 inserisci_assegnazione_progetto(conn);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -340,7 +378,8 @@ static void consultazione_canale(MYSQL *conn){
     char id_c[45];
     char cod_c[45];
     int id;
-    int cod;
+    int cod; 
+    int status;
     // Retrieve informazioni
     printf("Inserire ID del progetto: ");
     while(true)
@@ -387,8 +426,22 @@ static void consultazione_canale(MYSQL *conn){
     } 
 
     	// stampa conversazioni
+        do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt, header, &results);
-        mysql_stmt_close(prepared_stmt);
+        mysql_free_result(rs_metadata);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf("Nessuna disponibilità\n");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
 
     
 }
@@ -431,12 +484,13 @@ do {
             goto next;
         }
         dump_result_set(conn, prepared_stmt, header, &results);
+        mysql_free_result(rs_metadata);
         next:
         status = mysql_stmt_next_result(prepared_stmt);
         if (status > 0){
             finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
         }
-        if(results == 0) printf(" ");
+        if(results == 0) printf("Nessuna disponibilità\n");
     } while (status == 0);
     out:
     mysql_stmt_close(prepared_stmt);
@@ -463,7 +517,6 @@ do {
                 inserisci_assegnazione_progetto(conn);
                 break; 
             case '5':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -485,7 +538,6 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
     MYSQL_TIME parsed_data;
     char data[11];
     char orario[9];
-    //char *parsed_time; elimina
     char cfdest[45];
 
     // retrieve dei parametri necessari
@@ -497,7 +549,6 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
                     if(time_compare(orario)) break;
                     else printf("Formato sbagliato, riprova: ");
                 }
-                // parsed_time = parse_time(orario); elimina
     printf("Inserire la data di invio del messaggio a cui vuoi rispondere: ");
                 while(true){
                     getInput(11, data, false);
@@ -548,6 +599,7 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
     else 
     {
         printf("Risposta inserita correttamente...\n");
+        mysql_free_result(rs_metadata);
         mysql_stmt_close(prepared_stmt);
 
 
@@ -559,7 +611,6 @@ static void inserisci_risposta_privata(MYSQL *conn, int id)
                 inserisci_risposta_privata(conn, id);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -582,7 +633,6 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
     MYSQL_TIME parsed_data;
     char data[11];
     char orario[9];
-    //char *parsed_time; elimina
     char cfdest[45];
 
     // retrieve dei parametri necessari
@@ -594,7 +644,6 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
                     if(time_compare(orario)) break;
                     else printf("Formato sbagliato, riprova: ");
                 }
-                // parsed_time = parse_time(orario); elimina
     printf("Inserire la data di invio del messaggio a cui vuoi rispondere: ");
                 while(true){
                     getInput(11, data, false);
@@ -648,10 +697,11 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
     else 
     {
         printf("Risposta inserita correttamente...\n");
+        mysql_free_result(rs_metadata);
         mysql_stmt_close(prepared_stmt);
 
 
-        printf("\nVuoi visualizzare la lista dei canali? \n1) Sì \n2) No\n");
+        printf("\nVuoi rispondere ad un altro messaggio? \n1) Sì \n2) No\n");
         op1 = multiChoice("Select: ", options, 2);
         switch(op1)
         {
@@ -659,7 +709,6 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
                 inserisci_risposta_pubblica(conn, idprog, codcanale);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -674,6 +723,7 @@ static void inserisci_risposta_pubblica(MYSQL *conn, int id, int cod)
 
 static void inserisci_messaggio(MYSQL *conn, int id, int cod)
 {
+
     MYSQL_STMT *prepared_stmt;
     char options[2] = {'1','2'};
     char op1;
@@ -720,6 +770,7 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
     else 
     {
         printf("Messaggio inserito correttamente...\n");
+        mysql_free_result(rs_metadata);
         mysql_stmt_close(prepared_stmt);
 
 
@@ -731,7 +782,6 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
                 inserisci_messaggio(conn, idprog, codcanale);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -749,6 +799,7 @@ static void inserisci_messaggio(MYSQL *conn, int id, int cod)
 
 static void consultazione_canale_scrittura(MYSQL *conn){
     MYSQL_STMT *prepared_stmt;
+    int status;
     MYSQL_BIND param[2];
     char header[512];
     int results;
@@ -803,10 +854,23 @@ static void consultazione_canale_scrittura(MYSQL *conn){
         mysql_stmt_close(prepared_stmt);
 	return;
     } 
-
-    	// stampa conversazioni
+	// stampa conversazioni
+    	do {
+        // Skip OUT variables (although they are not present in the procedure...)
+        if(conn->server_status & SERVER_PS_OUT_PARAMS) {
+            goto next;
+        }
         dump_result_set(conn, prepared_stmt, header, &results);
-        mysql_stmt_close(prepared_stmt);
+        mysql_free_result(rs_metadata);
+        next:
+        status = mysql_stmt_next_result(prepared_stmt);
+        if (status > 0){
+            finish_with_stmt_error(conn, prepared_stmt, "Unexpected condition", true);
+        }
+        if(results == 0) printf("Nessuna disponibilità\n");
+    } while (status == 0);
+    out:
+    mysql_stmt_close(prepared_stmt);
 	
 	printf("*** Azioni disponibili: ***\n\n");
         printf("1) Scrivere un messaggio\n");
@@ -825,7 +889,6 @@ static void consultazione_canale_scrittura(MYSQL *conn){
                 inserisci_risposta_privata(conn, id);
                 break;
             case '4':
-                printf("\nArrivederci!");
                 return;
         
             default:
@@ -877,6 +940,7 @@ static void stampa_progetti_appartenenza(MYSQL *conn){
             goto next;
         }
         dump_result_set(conn, prepared_stmt, header, &results);
+        mysql_free_result(rs_metadata);
         next:
         status = mysql_stmt_next_result(prepared_stmt);
         if (status > 0){
@@ -898,7 +962,6 @@ static void stampa_progetti_appartenenza(MYSQL *conn){
                 consultazione_canale_scrittura(conn);
                 break;
             case '2':
-                printf("\nArrivederci!");
                 return;
         
             default:
