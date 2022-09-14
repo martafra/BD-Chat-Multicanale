@@ -544,6 +544,5 @@ void run_as_amministratore(MYSQL *conn)
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();
         }
-        getchar();
     }
 }
