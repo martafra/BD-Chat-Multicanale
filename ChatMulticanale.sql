@@ -170,35 +170,6 @@ CREATE INDEX `fk_Coordinazione_Progetto1_idx` ON `Azienda`.`Coordinazione` (`Pro
 
 
 -- -----------------------------------------------------
--- Table `Azienda`.`Creazione`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `Azienda`.`Creazione` ;
-
-CREATE TABLE IF NOT EXISTS `Azienda`.`Creazione` (
-  `CanaleDiComunicazione_Codice` INT NOT NULL,
-  `CanaleDiComunicazione_Progetto_IDProgetto` INT NOT NULL,
-  `Lavoratore_CF` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`CanaleDiComunicazione_Codice`, `CanaleDiComunicazione_Progetto_IDProgetto`),
-  CONSTRAINT `fk_Creazione_CanaleDiComunicazione1`
-    FOREIGN KEY (`CanaleDiComunicazione_Codice` , `CanaleDiComunicazione_Progetto_IDProgetto`)
-    REFERENCES `Azienda`.`CanaleDiComunicazione` (`Codice` , `Progetto_IDProgetto`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_Creazione_Lavoratore1`
-    FOREIGN KEY (`Lavoratore_CF`)
-    REFERENCES `Azienda`.`Lavoratore` (`CF`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-CREATE INDEX `fk_Creazione_Lavoratore1_idx` ON `Azienda`.`Creazione` (`Lavoratore_CF` ASC) VISIBLE;
-
-CREATE UNIQUE INDEX `CanaleDiComunicazione_Codice_UNIQUE` ON `Azienda`.`Creazione` (`CanaleDiComunicazione_Codice` ASC) VISIBLE;
-
-CREATE UNIQUE INDEX `CanaleDiComunicazione_Progetto_IDProgetto_UNIQUE` ON `Azienda`.`Creazione` (`CanaleDiComunicazione_Progetto_IDProgetto` ASC) VISIBLE;
-
-
--- -----------------------------------------------------
 -- Table `Azienda`.`Risposta`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `Azienda`.`Risposta` ;
@@ -309,7 +280,7 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;
-set transaction isolation level serializable;
+set transaction isolation level read uncommitted;
 start transaction;
 	insert into `Messaggio` (`Lavoratore_CF`, `DataInvio`, `OrarioInvio`, `Testo`, `CanaleDiComunicazione_Codice`, `CanaleDiComunicazione_Progetto_IDProgetto`)
     values (var_CF, date(now()), time(now()), var_testo, var_codice, var_IDProgetto);
@@ -334,14 +305,11 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;
-set transaction isolation level repeatable read;
+set transaction isolation level read uncommitted;
 start transaction;
     -- insert del canale di comunicazione non privato
 	insert into `CanaleDiComunicazione` (`Progetto_IDProgetto`, `NomeCanale`, `Tipo`)
     values (var_IDProgetto, var_nomecanale, 'Pubblico');
-    -- attribuzione della relazione di creazione al capoprogetto
-    insert into `Creazione` (`CanaleDiComunicazione_Codice`, `CanaleDiComunicazione_Progetto_IDProgetto`, `Lavoratore_CF`)
-    values (last_insert_id(), var_IDProgetto, var_CF);
     -- inserimento capoprogetto nel canale
     insert into `Appartenenza` (`Lavoratore_CF`, `CanaleDiComunicazione_Codice`, `CanaleDiComunicazione_Progetto_IDProgetto`)
     values(var_CF, last_insert_id(), var_IDProgetto);
@@ -366,7 +334,7 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;
-set transaction isolation level repeatable read;
+set transaction isolation level read uncommitted;
 start transaction;
 	insert into `Assegnazione` (`Lavoratore_CF`, `Progetto_IDProgetto`)
     values (var_CF, var_IDProgetto);
@@ -391,7 +359,7 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;
-set transaction isolation level repeatable read;
+set transaction isolation level read uncommitted;
 start transaction;
 	insert into `Coordinazione` (`Lavoratore_CF`, `Progetto_IDProgetto`)
     values (var_CF, var_IDProgetto);
@@ -416,7 +384,7 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;
-set transaction isolation level repeatable read;
+set transaction isolation level read uncommitted;
 start transaction;
 	insert into `Appartenenza` (`Lavoratore_CF`, `CanaleDiComunicazione_Codice`, `CanaleDiComunicazione_Progetto_IDProgetto`)
     values (var_CF, var_codice, var_IDProgetto);
@@ -443,7 +411,7 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;
-set transaction isolation level serializable;
+set transaction isolation level read uncommitted;
 start transaction;
 	set var_datamittente = date(now());
     set var_orariomittente = time(now());
@@ -479,7 +447,7 @@ declare exit handler for sqlexception
 	end;
 set var_datamittente = date(now());
 set var_orariomittente = time(now());
-set transaction isolation level serializable;
+set transaction isolation level read uncommitted;
 start transaction;
 		-- insert del canale di comunicazione privato
 		insert into `CanaleDiComunicazione` (`Progetto_IDProgetto`, `NomeCanale`, `Tipo`)
@@ -517,7 +485,7 @@ declare exit handler for sqlexception
 		rollback; -- rollback any changes made in the transaction
 		resignal; -- raise again the sql exception to the caller
 	end;    
-set transaction isolation level repeatable read;
+set transaction isolation level read uncommitted;
 start transaction;
 	update Progetto set DataFine = var_datafine where Progetto.IDProgetto = var_IDProgetto;
 commit;
@@ -862,21 +830,6 @@ BEGIN
 	end if;	
 END$$
 
-
-USE `Azienda`$$
-DROP TRIGGER IF EXISTS `Azienda`.`Creazione_BEFORE_INSERT` $$
-USE `Azienda`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `Azienda`.`Creazione_BEFORE_INSERT` BEFORE INSERT ON `Creazione` FOR EACH ROW
-BEGIN
-	declare var_datafine date;
-    -- selezione data fine progetto
-    select DataFine from Progetto join Messaggio on Progetto.IDProgetto = Messaggio.CanaleDiComunicazione_Progetto_IDProgetto
-    where Progetto.IDProgetto = new.CanaleDiComunicazione_Progetto_IDProgetto into var_datafine;
-    -- controllo data
-    if var_datafine is not null then
-		signal sqlstate '45004' set message_text = "Impossibile creare un canale di comunicazione afferente ad un progetto chiuso";
-	end if;	
-END$$
 
 
 DELIMITER ;
